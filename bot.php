@@ -32,7 +32,7 @@
         bot('sendMessage' , [
             'chat_id' => $chat_id,
             'text' => $text,
-            'reply_markup' => json_encode(['keyboard' => $main_keyboard , 'resize_keyboard' => true])
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
     function dollorPriceSender($chat_id ){
@@ -45,7 +45,7 @@
             'chat_id' => $chat_id,
             'text' => $text,
             'parse_mode' => 'HTML',
-            'reply_markup' => json_encode(['keyboard' => $main_keyboard , 'resize_keyboard' => true])
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
     function listPriceMenu($chat_id , $text = ''){
@@ -58,7 +58,7 @@
         bot('sendMessage' , [
             'chat_id' => $chat_id,
             'text' => $text,
-            'reply_markup' => json_encode(['keyboard' => $list_price_keyboard , 'resize_keyboard' => true])
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('listPrice') , 'resize_keyboard' => true])
         ]);
     }
     function sendPhoto($chat_id , $folderPath){
@@ -100,4 +100,31 @@ function bot($method , $data=[]){
     }
 function welcomeMessage(){
         return 'سلام به ربات تاسیسات خانه خوش آمدید با تشکر از شما بابت همکاری و حضور در این سایت لطفا خدمت مورد نظر خود را انتخاب کنید ';
+}
+function get_main_keyboard($keyboardType){
+        $keyboard = [];
+        switch ($keyboardType) {
+            case 'main':
+                $keyboard = getHomeKeyboard();
+                break;
+            case 'listPrice':
+                $keyboard = getListPriceKeyboard();
+                break;
+            default :
+                $keyboard = getHomeKeyboard();
+        }
+        return $keyboard;
+}
+function getHomeKeyboard(){
+        return [
+            ['لیست قیمت', 'نرخ دلار']
+        ];
+}
+function getListPriceKeyboard(){
+        return  [
+            ['میراب'],
+            ['بنکن'],
+            ['پلیران'],
+            ['خانه']
+        ];
 }
