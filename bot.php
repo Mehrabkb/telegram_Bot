@@ -8,21 +8,40 @@
         $textMessage = $data->message->text;
         switch ($textMessage){
             case '/start' :
-                bot('sendMessage' , [
-                    'chat_id' => $data->message->chat->id,
-                    'text' => welcomeMessage()
-                ]);
+                sender($data->message->chat->id , welcomeMessage());
                 break;
-
+            case 'نرخ دلار':
+                dollorPriceSender($data->message->chat->id);
+                break;
             default :
-                bot('sendMessage' , [
-                    'chat_id' => $data->message->chat->id,
-                    'text' => welcomeMessage()
-                ]);
+                sender($data->message->chat->id , welcomeMessage());
         }
 
     }
 
+    function sender($chat_id , $text){
+        $main_keyboard = [
+            ['لیست قیمت ' , 'نرخ دلار']
+        ];
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $text,
+            'reply_markup' => json_encode(['keyboard' => $main_keyboard , 'resize_keyboard' => true])
+        ]);
+    }
+    function dollorPriceSender($chat_id ){
+        $main_keyboard = [
+            ['لیست قیمت ' , 'نرخ دلار']
+        ];
+        include ('dollorprice.php');
+        $text = $finalText;
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode(['keyboard' => $main_keyboard , 'resize_keyboard' => true])
+        ]);
+    }
 
 
 function bot($method , $data=[]){
