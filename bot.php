@@ -17,7 +17,7 @@
                 listPriceMenu($data->message->chat->id , 'یکی از موارد زیر را انتخاب کنید');
                 break;
             case 'دسترسی شماره موبایل':
-                verfiyMobileNumber($data->message->chat->id , 'کابر گرامی به منظور دسترسی به شما مشتری گرامی برای پیگیری سفارشات ما نیاز داریم تا شماره همراه شما را در اختیار داشته باشیم لطفا با کلیک کردن روی دکمه اجازه دسترسی شماره ی خود را با ما به اشتراک بذارید');
+                verfiyMobileNumber($data->message->chat->id , $data );
                 break;
             case 'بنکن':
                 sendPhoto($data->message->chat->id , '/benkan/');
@@ -51,12 +51,13 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
-    function verfiyMobileNumber($chat_id , $text = ''){
-        bot('sendMessage' , [
-            'chat_id' => $chat_id,
-            'text' => $text,
-            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('mobile_verify') , 'resize_keyboard' => true])
-        ]);
+    function verfiyMobileNumber($chat_id , $data){
+            $text = 'کابر گرامی به منظور دسترسی به شما مشتری گرامی برای پیگیری سفارشات ما نیاز داریم تا شماره همراه شما را در اختیار داشته باشیم لطفا با کلیک کردن روی دکمه اجازه دسترسی شماره ی خود را با ما به اشتراک بذارید';
+            bot('sendMessage' , [
+                'chat_id' => $chat_id,
+                'text' => $text,
+                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('mobile_verify') , 'resize_keyboard' => true])
+            ]);
     }
     function listPriceMenu($chat_id , $text = ''){
         $list_price_keyboard = [
@@ -123,6 +124,9 @@ function get_main_keyboard($keyboardType){
             case 'mobile_verify':
                 $keyboard = getMobileVerifyKeyboard();
                 break;
+            case 'mobile_verified':
+                $keyboard = getMobileVerifiedKeyboard();
+                break;
             default :
                 $keyboard = getHomeKeyboard();
         }
@@ -144,7 +148,12 @@ function getListPriceKeyboard(){
 }
 function getMobileVerifyKeyboard(){
         return [
-            ['اجازه دسترسی'],
+            [['text' => 'اجازه دسترسی',
+                'request_contact' => true
+            ]],
             ['خانه']
         ];
+}
+function getMobileVerifiedKeyboard(){
+        return [['خانه']];
 }
