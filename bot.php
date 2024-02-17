@@ -16,6 +16,9 @@
             case 'لیست قیمت':
                 listPriceMenu($data->message->chat->id , 'یکی از موارد زیر را انتخاب کنید');
                 break;
+            case 'بنکن':
+                sendPhoto($data->message->chat->id , '/benkan/');
+                break;
             default :
                 sender($data->message->chat->id , welcomeMessage());
         }
@@ -58,18 +61,41 @@
             'reply_markup' => json_encode(['keyboard' => $list_price_keyboard , 'resize_keyboard' => true])
         ]);
     }
-
+    function sendPhoto($chat_id , $folderPath){
+        $sendPhotoKeyboard = [['خانه']];
+        $directory = 'assets' . $folderPath;
+        $files = scandir($directory);
+        $imageFiles = array();
+        foreach($files as $file){
+            $filePath = $directory . $file;
+            if (is_file($filePath) && in_array(pathinfo($file, PATHINFO_EXTENSION), array('jpg', 'jpeg', 'png', 'gif'))) {
+                // Add image file path to array
+                $imageFiles[] = $filePath;
+            }
+        }
+        foreach($imageFiles as $imageFile){
+            $imageFilePath = new CURLFile(realpath($imageFile));
+            bot('sendPhoto' , array(
+                'chat_id' => $chat_id,
+                'photo' => $imageFilePath,
+                'reply_markup' => json_encode(['keyboard' => $sendPhotoKeyboard , 'resize_keyboard' => true])
+            ));
+        }
+    }
 
 function bot($method , $data=[]){
+        print_r($data);
         $url = "https://api.telegram.org/bot" . API_KEY . "/" . $method;
         $ch = curl_init();
         curl_setopt($ch , CURLOPT_URL , $url);
+        curl_setopt($ch, CURLOPT_POST, 1);
         curl_setopt($ch , CURLOPT_RETURNTRANSFER , true);
         curl_setopt($ch , CURLOPT_POSTFIELDS , $data);
         curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: multipart/form-data'));
         $result = curl_exec($ch);
 
         return $result;
+
 
     }
 function welcomeMessage(){
