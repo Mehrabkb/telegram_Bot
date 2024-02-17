@@ -1,8 +1,23 @@
 <?php
     include ("apiKey.php");
+    include 'dataBaseConnection.php';
     $inData = file_get_contents("php://input");
     $tData = json_decode($inData);
-    reply($tData);
+    if(isset($tData->message->contact)){
+        $conn = connection();
+        if(!checkUserExist($tData->message->chat->id)){
+            $sql = "INSERT INTO `users`( `chat_id` ,`phone_number`) VALUES ('{$tData->message->chat->id}','{$tData->message->contact->phone_number}')";
+            $result = $conn->query($sql);
+            if($result->num_rows){
+                verifyMobileNumber($tData->message->chat->id , $tData);
+            }
+        }else{
+            verifyMobileNumber($tData->message->chat->id , $tData);
+        }
+    }else{
+        reply($tData);
+    }
+
     function reply($data){
         $textMessage = $data->message->text;
         switch ($textMessage){
@@ -17,7 +32,7 @@
                 listPriceMenu($data->message->chat->id , 'یکی از موارد زیر را انتخاب کنید');
                 break;
             case 'دسترسی شماره موبایل':
-                verfiyMobileNumber($data->message->chat->id , $data );
+                verifyMobileNumber($data->message->chat->id , $data );
                 break;
             case 'بنکن':
                 sendPhoto($data->message->chat->id , '/benkan/');
@@ -51,13 +66,26 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
-    function verfiyMobileNumber($chat_id , $data){
+    function verifyMobileNumber($chat_id , $data){
+        $conn = connection();
+        $sql = "SELECT * FROM `users` WHERE  `chat_id`";
+        $result = $conn->query($sql);
+        if(!$result->num_rows){
             $text = 'کابر گرامی به منظور دسترسی به شما مشتری گرامی برای پیگیری سفارشات ما نیاز داریم تا شماره همراه شما را در اختیار داشته باشیم لطفا با کلیک کردن روی دکمه اجازه دسترسی شماره ی خود را با ما به اشتراک بذارید';
             bot('sendMessage' , [
                 'chat_id' => $chat_id,
                 'text' => $text,
                 'reply_markup' => json_encode(['keyboard' => get_main_keyboard('mobile_verify') , 'resize_keyboard' => true])
             ]);
+        }else{
+            $text = 'کاربر گرامی شماره شما قبلا در ربات ثبت شده است لطفا از قسمت اطلاعات کاربری بقیه موارد را تکمیل فرمایید';
+            bot('sendMessage' , [
+                'chat_id' => $chat_id,
+                'text' => $text,
+                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('mobile_verified') , 'resize_keyboard' => true])
+            ]);
+        }
+
     }
     function listPriceMenu($chat_id , $text = ''){
         $list_price_keyboard = [
@@ -156,4 +184,12 @@ function getMobileVerifyKeyboard(){
 }
 function getMobileVerifiedKeyboard(){
         return [['خانه']];
+}
+function checkUserExist($chat_id){
+        $conn = connection();
+        $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
+        if($conn->query($sql)){
+            return true;
+        }
+        return false;
 }
