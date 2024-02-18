@@ -1,8 +1,7 @@
 <?php
-    require 'vendor/autoload.php';
-
-    // Create a new PHPMailer instance
+    include 'vendor/autoload.php';
     use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\SMTP;
     use PHPMailer\PHPMailer\Exception;
     include ("apiKey.php");
     include 'dataBaseConnection.php';
@@ -348,28 +347,31 @@
     }
 function sendEmailWithAttachment($photo_path , $chat_id) {
     // Create a new PHPMailer instance
-    $mail = new PHPMailer;
-
-    // Set up SMTP
+    $mail = new PHPMailer(true); // Enable exceptions
+    $mail->SMTPDebug = SMTP::DEBUG_SERVER; // Debug mode (optional)
 //    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com'; // Your SMTP server
-    $mail->Port = 587; // Your SMTP port
-    $mail->SMTPAuth = true;
-    $mail->Username = GMAIL_USERNAME; // Your SMTP username
-    $mail->Password = GMAIL_PASSWORD; // Your SMTP password
-    $mail->SMTPSecure = 'tls';
+    $mail->Host = 'smtp.gmail.com'; // Gmail SMTP server
+//    $mail->SMTPAuth = true;
+    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->Port = 587;
+    $mail->Username = 'tasisatkhanecompany@gmail.com'; // Your Gmail email address
+    $mail->Password = 'Asdf_567'; // Your Gmail password
+
     $conn = connection();
     $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
     $result = $conn->query($sql);
     // Set up email headers
-    $mail->setFrom( GMAIL_USERNAME, 'mehrab'); // Sender's email address and name
-    $mail->addAddress('info@tasisatkhane.com', 'info'); // Recipient's email address and name
-    $mail->Subject = 'پیش فاکتور تلگرام'; // Email subject
+    $mail->setFrom('tasisatkhanecompany@gmail.com', 'Sender Name');
+    $mail->addAddress('info@tasisatkhane.com', 'Receiver Name');
+    $mail->addReplyTo('tasisatkhanecompany@gmail.com', 'Sender Name'); // Optional: Set the reply-to address
+
+
+    $mail->IsHTML(true); // Set email content as HTML
+    $mail->Subject =  'پیش فاکتور تلگرام'; // Email subject
     $mail->Body = 'تلفن مشتری' . ':' . $result->fetch_assoc()['phone_number']; // Email body
-//    $mail->isHTML(true);
 
     // Attach the photo
-    $mail->addAttachment($photo_path);
+//    $mail->addAttachment($photo_path , 'test.jpg');
 
     // Send the email
     if (!$mail->send()) {
