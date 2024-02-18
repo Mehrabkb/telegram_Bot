@@ -3,6 +3,10 @@
     include 'dataBaseConnection.php';
     $inData = file_get_contents("php://input");
     $tData = json_decode($inData);
+    function setDataTmpUserData ($data){
+        global $tmpUserData ;
+        $tmpUserData = $data;
+    }
     if(isset($tData->message->contact)){
         $conn = connection();
         if(!checkUserExist($tData->message->chat->id)){
@@ -37,8 +41,27 @@
             case 'بنکن':
                 sendPhoto($data->message->chat->id , '/benkan/');
                 break;
+            case 'اطلاعات کابری':
+                informationUser($data->message->chat->id , 'به ربات خودتون خوش آمدید لطفا برای تکمیل اطلاعات کاربری از دکمه های مربوطه استفاده کنید');
+                break;
+            case 'نام':
+                setUserStatus($data->message->chat->id , 'sendName');
+                getUserName($data->message->chat->id , 'لطفا نام خود را برای ما ارسال کنید');
+                break;
+            case 'نام خانوادگی':
+                setUserStatus($data->message->chat->id , 'sendLastName');
+                getUserName($data->message->chat->id , 'لطفا نام خانوادگی خود را برای ما ارسال کنید');
+                break;
             default :
-                sender($data->message->chat->id , welcomeMessage());
+                $userStatus = getUserStatus($data->message->chat->id);
+                switch ($userStatus){
+                    case 'sendName':
+                        userSetoneColumn($data->message->chat->id , $data->message->text , 'first_name' , 'نام شما با موفقیت ثبت شد');
+                        break;
+                    case 'sendLastName':
+                        userSetoneColumn($data->message->chat->id , $data->message->text , 'last_name' , 'نام خانوادگی شما با موفقیت ثبت شد');
+                        break;
+                }
         }
 
     }
@@ -54,9 +77,6 @@
         ]);
     }
     function dollorPriceSender($chat_id ){
-        $main_keyboard = [
-            ['لیست قیمت' , 'نرخ دلار']
-        ];
         include ('dollorprice.php');
         $text = $finalText;
         bot('sendMessage' , [
@@ -87,13 +107,14 @@
         }
 
     }
+    function informationUser($chat_id , $text){
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $text,
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('information_user')])
+        ]);
+    }
     function listPriceMenu($chat_id , $text = ''){
-        $list_price_keyboard = [
-            ['میراب'],
-            ['بنکن'],
-            ['پلیران'],
-            ['خانه']
-        ];
         bot('sendMessage' , [
             'chat_id' => $chat_id,
             'text' => $text,
@@ -155,6 +176,12 @@ function get_main_keyboard($keyboardType){
             case 'mobile_verified':
                 $keyboard = getMobileVerifiedKeyboard();
                 break;
+            case 'information_user';
+                $keyboard = getUserInformationKeyboard();
+                break;
+            case 'getUserName' :
+                $keyboard = getUserNameKeyboard();
+                break;
             default :
                 $keyboard = getHomeKeyboard();
         }
@@ -163,7 +190,7 @@ function get_main_keyboard($keyboardType){
 function getHomeKeyboard(){
         return [
             ['لیست قیمت', 'نرخ دلار'],
-            ['دسترسی شماره موبایل']
+            ['دسترسی شماره موبایل' , 'اطلاعات کابری']
         ];
 }
 function getListPriceKeyboard(){
@@ -182,6 +209,23 @@ function getMobileVerifyKeyboard(){
             ['خانه']
         ];
 }
+function getUserInformationKeyboard(){
+        return [
+                ['نام' , 'نام خانوادگی' , 'ایمیل'],['خانه']
+            ];
+}
+function getUserNameKeyboard(){
+        return [
+                ["خانه"]
+        ];
+}
+function setUserNameKeyboard(){
+        return [
+            [
+                [""]
+            ]
+        ];
+}
 function getMobileVerifiedKeyboard(){
         return [['خانه']];
 }
@@ -193,3 +237,49 @@ function checkUserExist($chat_id){
         }
         return false;
 }
+function getUserName($chat_id , $text){
+    bot('sendMessage' , [
+        'chat_id' => $chat_id,
+        'text' => $text,
+        'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('getUserName') , 'resize_keyboard' => true])
+    ]);
+}
+    function setUserName($chat_id , $text){
+        global $tmpUserData ;
+        if($tmpUserData == 'setName'){
+            bot('sendMessage' , [
+                'chat_id' => $chat_id,
+                'text' => 'your name : ' . $text,
+                'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('getUserName') , 'resize_keyboard' => true])
+            ]);
+        }
+    }
+    function setUserStatus($chat_id , $status_value){
+        $conn = connection();
+        $sql = "UPDATE `users` SET `status`= '{$status_value}' WHERE `chat_id` = {$chat_id}";
+        $conn->query($sql);
+    }
+    function getUserStatus($chat_id){
+        $conn = connection();
+        $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
+        $result = $conn->query($sql);
+        return $result->fetch_assoc()['status'];
+    }
+    function clearUserStatus($chat_id){
+        $conn = connection();
+        $sql = "UPDATE `users` SET `status`= 'null' WHERE `chat_id` = {$chat_id}";
+        $conn->query($sql);
+    }
+    function userSetoneColumn($chat_id , $userName , $column , $success_text){
+        $userName = htmlspecialchars($userName);
+        $conn = connection();
+        $sql = "UPDATE `users` SET `{$column}`= '{$userName}' WHERE `chat_id` = {$chat_id}";
+        if($conn->query($sql)){
+            bot('sendMessage' , [
+                'chat_id' => $chat_id,
+                'text' => $success_text,
+                'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('information_user') , 'resize_keyboard' => true])
+            ]);
+        }
+        clearUserStatus($chat_id);
+    }
