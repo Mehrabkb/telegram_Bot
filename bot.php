@@ -8,15 +8,17 @@
         $tmpUserData = $data;
     }
     if(isset($tData->message->contact)){
-        $conn = connection();
-        if(!checkUserExist($tData->message->chat->id)){
+        if(!checkUserExistByChatId($tData->message->chat->id)){
+            $conn = connection();
             $sql = "INSERT INTO `users`( `chat_id` ,`phone_number`) VALUES ('{$tData->message->chat->id}','{$tData->message->contact->phone_number}')";
             $result = $conn->query($sql);
-            if($result->num_rows){
-                verifyMobileNumber($tData->message->chat->id , $tData);
+            if($result){
+                bot('sendMessage' , [
+                    'chat_id' => $tData->message->chat->id,
+                    'text' => 'شماره موبایل شما با موفقیت ثبت شد ',
+                    'reply_markup' => json_encode(['keyboard' => get_main_keyboard('mobile_verified') , 'resize_keyboard' => true])
+                ]);
             }
-        }else{
-            verifyMobileNumber($tData->message->chat->id , $tData);
         }
     }else{
         reply($tData);
@@ -36,7 +38,7 @@
                 listPriceMenu($data->message->chat->id , 'یکی از موارد زیر را انتخاب کنید');
                 break;
             case 'دسترسی شماره موبایل':
-                verifyMobileNumber($data->message->chat->id , $data );
+                verifyMobileNumber($data->message->chat->id);
                 break;
             case 'بنکن':
                 sendPhoto($data->message->chat->id , '/benkan/');
@@ -45,21 +47,40 @@
                 informationUser($data->message->chat->id , 'به ربات خودتون خوش آمدید لطفا برای تکمیل اطلاعات کاربری از دکمه های مربوطه استفاده کنید');
                 break;
             case 'نام':
-                setUserStatus($data->message->chat->id , 'sendName');
-                getUserName($data->message->chat->id , 'لطفا نام خود را برای ما ارسال کنید');
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'setName');
+                    getUserName($data->message->chat->id , 'لطفا نام خود را برای ما ارسال کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
                 break;
             case 'نام خانوادگی':
-                setUserStatus($data->message->chat->id , 'sendLastName');
-                getUserName($data->message->chat->id , 'لطفا نام خانوادگی خود را برای ما ارسال کنید');
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'setLastName');
+                    getUserName($data->message->chat->id , 'لطفا نام خانوادگی خود را برای ما ارسال کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
+                break;
+            case 'ایمیل':
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'setEmail');
+                    getUserName($data->message->chat->id , 'لطفا ایمیل خود را وارد کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
                 break;
             default :
                 $userStatus = getUserStatus($data->message->chat->id);
                 switch ($userStatus){
-                    case 'sendName':
+                    case 'setName':
                         userSetoneColumn($data->message->chat->id , $data->message->text , 'first_name' , 'نام شما با موفقیت ثبت شد');
                         break;
-                    case 'sendLastName':
+                    case 'setLastName':
                         userSetoneColumn($data->message->chat->id , $data->message->text , 'last_name' , 'نام خانوادگی شما با موفقیت ثبت شد');
+                        break;
+                    case 'setEmail':
+                        userSetoneColumn($data->message->chat->id , $data->message->text , 'email' , 'ایمیل شما با موفقیت ثبت شد');
                         break;
                 }
         }
@@ -86,11 +107,11 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
-    function verifyMobileNumber($chat_id , $data){
+    function verifyMobileNumber($chat_id ){
         $conn = connection();
-        $sql = "SELECT * FROM `users` WHERE  `chat_id`";
+        $sql = "SELECT * FROM `users` WHERE  `chat_id` = '{$chat_id}'";
         $result = $conn->query($sql);
-        if(!$result->num_rows){
+        if($result->num_rows == 0){
             $text = 'کابر گرامی به منظور دسترسی به شما مشتری گرامی برای پیگیری سفارشات ما نیاز داریم تا شماره همراه شما را در اختیار داشته باشیم لطفا با کلیک کردن روی دکمه اجازه دسترسی شماره ی خود را با ما به اشتراک بذارید';
             bot('sendMessage' , [
                 'chat_id' => $chat_id,
@@ -271,15 +292,26 @@ function getUserName($chat_id , $text){
         $conn->query($sql);
     }
     function userSetoneColumn($chat_id , $userName , $column , $success_text){
-        $userName = htmlspecialchars($userName);
-        $conn = connection();
-        $sql = "UPDATE `users` SET `{$column}`= '{$userName}' WHERE `chat_id` = {$chat_id}";
-        if($conn->query($sql)){
-            bot('sendMessage' , [
-                'chat_id' => $chat_id,
-                'text' => $success_text,
-                'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('information_user') , 'resize_keyboard' => true])
-            ]);
+        if(checkUserExistByChatId($chat_id)){
+            $userName = htmlspecialchars($userName);
+            $conn = connection();
+            $sql = "UPDATE `users` SET `{$column}`= '{$userName}' WHERE `chat_id` = {$chat_id}";
+            if($conn->query($sql)){
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $success_text,
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('information_user') , 'resize_keyboard' => true])
+                ]);
+            }
+            clearUserStatus($chat_id);
         }
-        clearUserStatus($chat_id);
+    }
+    function checkUserExistByChatId($chat_id){
+        $conn = connection();
+        $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
+        $result = $conn->query($sql);
+        if($result->num_rows > 0 ){
+            return true;
+        }
+        return false;
     }
