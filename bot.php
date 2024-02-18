@@ -23,7 +23,6 @@
         $photo_content = file_get_contents($photo_url);
         $photo_name = 'photos/' . $tData->message->chat->id + rand(100000 , 100000000). '.jpg'; // Directory 'photos' must exist
         file_put_contents($photo_name, $photo_content);
-//        sendEmailWithAttachment($photo_path , $tData->message->chat->id);
         clearUserStatus($tData->message->chat->id);
     }
     if(isset($tData->message->contact)){
@@ -349,44 +348,3 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
-function sendEmailWithAttachment($photo_path , $chat_id) {
-    // Create a new PHPMailer instance
-    $mail = new PHPMailer(true); // Enable exceptions
-    $mail->SMTPDebug = SMTP::DEBUG_SERVER; // Debug mode (optional)
-//    $mail->isSMTP();
-    $mail->Host = 'smtp.gmail.com'; // Gmail SMTP server
-//    $mail->SMTPAuth = true;
-    $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-    $mail->Port = 587;
-    $mail->Username = 'tasisatkhanecompany@gmail.com'; // Your Gmail email address
-    $mail->Password = 'Asdf_567'; // Your Gmail password
-
-    $conn = connection();
-    $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
-    $result = $conn->query($sql);
-    // Set up email headers
-    $mail->setFrom('tasisatkhanecompany@gmail.com', 'Sender Name');
-    $mail->addAddress('info@tasisatkhane.com', 'Receiver Name');
-    $mail->addReplyTo('tasisatkhanecompany@gmail.com', 'Sender Name'); // Optional: Set the reply-to address
-
-
-    $mail->IsHTML(true); // Set email content as HTML
-    $mail->Subject =  'پیش فاکتور تلگرام'; // Email subject
-    $mail->Body = 'تلفن مشتری' . ':' . $result->fetch_assoc()['phone_number']; // Email body
-
-    // Attach the photo
-//    $mail->addAttachment($photo_path , 'test.jpg');
-
-    // Send the email
-    if (!$mail->send()) {
-        echo 'Message could not be sent.';
-        echo 'Mailer Error: ' . $mail->ErrorInfo;
-    } else {
-        bot('sendMessage' , [
-            'chat_id' => $chat_id,
-            'text' => 'پیش فاکتور شما برای کارشناسان ما ارسال شد با شما تماس خواهند گرفت',
-            'parse_mode' => 'HTML',
-            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
-        ]);
-    }
-}
