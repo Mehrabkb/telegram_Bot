@@ -23,7 +23,6 @@
     }else{
         reply($tData);
     }
-
     function reply($data){
         $textMessage = $data->message->text;
         switch ($textMessage){
@@ -42,6 +41,9 @@
                 break;
             case 'بنکن':
                 sendPhoto($data->message->chat->id , '/benkan/');
+                break;
+            case 'ارزدیجیتال':
+                getCryptoCurrencies($data->message->chat->id);
                 break;
             case 'اطلاعات کابری':
                 informationUser($data->message->chat->id , 'به ربات خودتون خوش آمدید لطفا برای تکمیل اطلاعات کاربری از دکمه های مربوطه استفاده کنید');
@@ -107,7 +109,6 @@
         }
 
     }
-
     function sender($chat_id , $text){
         $main_keyboard = [
             ['لیست قیمت' , 'نرخ دلار']
@@ -232,7 +233,7 @@
     function getHomeKeyboard(){
             return [
                 ['لیست قیمت', 'نرخ دلار'],
-                ['دسترسی شماره موبایل' , 'اطلاعات کابری']
+                ['دسترسی شماره موبایل' , 'اطلاعات کابری' , 'ارزدیجیتال']
             ];
     }
     function getListPriceKeyboard(){
@@ -311,4 +312,13 @@
             return true;
         }
         return false;
+    }
+    function getCryptoCurrencies($chat_id){
+        include 'cryptoCurrency.php';
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $finalDataText,
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+        ]);
     }
