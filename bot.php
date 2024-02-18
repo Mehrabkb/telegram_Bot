@@ -1,4 +1,9 @@
 <?php
+    require 'vendor/autoload.php';
+
+    // Create a new PHPMailer instance
+    use PHPMailer\PHPMailer\PHPMailer;
+    use PHPMailer\PHPMailer\Exception;
     include ("apiKey.php");
     include 'dataBaseConnection.php';
     $inData = file_get_contents("php://input");
@@ -6,6 +11,17 @@
     function setDataTmpUserData ($data){
         global $tmpUserData ;
         $tmpUserData = $data;
+    }
+    if(isset($tData->message->photo) && getUserStatus($tData->message->chat->id) == 'sendFactor'){
+        $photo = end($tData->message->photo);
+        $photo_id = $photo->file_id;
+
+        // Download the photo
+        $photo_file = file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id");
+        $photo_file = json_decode($photo_file, true);
+        $photo_path = "https://api.telegram.org/file/bot" . API_KEY . "/" . $photo_file['result']['file_path'];
+        sendEmailWithAttachment($photo_path , $tData->message->chat->id);
+        clearUserStatus($tData->message->chat->id);
     }
     if(isset($tData->message->contact)){
         if(!checkUserExistByChatId($tData->message->chat->id)){
@@ -88,6 +104,13 @@
                     verifyMobileNumber($data->message->chat->id);
                 }
                 break;
+            case 'ارسال پیش فاکتور':
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'sendFactor');
+                    getUserName($data->message->chat->id , 'لطفا عکس فاکتور خود را برای ما ارسال کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
             default :
                 $userStatus = getUserStatus($data->message->chat->id);
                 switch ($userStatus){
@@ -232,6 +255,7 @@
     }
     function getHomeKeyboard(){
             return [
+                ['ارسال پیش فاکتور'],
                 ['لیست قیمت', 'نرخ دلار'],
                 ['دسترسی شماره موبایل' , 'اطلاعات کابری' , 'ارزدیجیتال']
             ];
@@ -322,3 +346,41 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
+function sendEmailWithAttachment($photo_path , $chat_id) {
+    // Create a new PHPMailer instance
+    $mail = new PHPMailer;
+
+    // Set up SMTP
+//    $mail->isSMTP();
+    $mail->Host = 'smtp.gmail.com'; // Your SMTP server
+    $mail->Port = 587; // Your SMTP port
+    $mail->SMTPAuth = true;
+    $mail->Username = GMAIL_USERNAME; // Your SMTP username
+    $mail->Password = GMAIL_PASSWORD; // Your SMTP password
+    $mail->SMTPSecure = 'tls';
+    $conn = connection();
+    $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
+    $result = $conn->query($sql);
+    // Set up email headers
+    $mail->setFrom( GMAIL_USERNAME, 'mehrab'); // Sender's email address and name
+    $mail->addAddress('info@tasisatkhane.com', 'info'); // Recipient's email address and name
+    $mail->Subject = 'پیش فاکتور تلگرام'; // Email subject
+    $mail->Body = 'تلفن مشتری' . ':' . $result->fetch_assoc()['phone_number']; // Email body
+//    $mail->isHTML(true);
+
+    // Attach the photo
+    $mail->addAttachment($photo_path);
+
+    // Send the email
+    if (!$mail->send()) {
+        echo 'Message could not be sent.';
+        echo 'Mailer Error: ' . $mail->ErrorInfo;
+    } else {
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => 'پیش فاکتور شما برای کارشناسان ما ارسال شد با شما تماس خواهند گرفت',
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+        ]);
+    }
+}
