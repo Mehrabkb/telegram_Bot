@@ -18,8 +18,12 @@
         // Download the photo
         $photo_file = file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id");
         $photo_file = json_decode($photo_file, true);
-        $photo_path = "https://api.telegram.org/file/bot" . API_KEY . "/" . $photo_file['result']['file_path'];
-        sendEmailWithAttachment($photo_path , $tData->message->chat->id);
+        $file_path = json_decode(file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id"), true)['result']['file_path'];
+        $photo_url = "https://api.telegram.org/file/bot" . API_KEY . "/$file_path";
+        $photo_content = file_get_contents($photo_url);
+        $photo_name = 'photos/' . $tData->message->chat->id + rand(100000 , 100000000). '.jpg'; // Directory 'photos' must exist
+        file_put_contents($photo_name, $photo_content);
+//        sendEmailWithAttachment($photo_path , $tData->message->chat->id);
         clearUserStatus($tData->message->chat->id);
     }
     if(isset($tData->message->contact)){
