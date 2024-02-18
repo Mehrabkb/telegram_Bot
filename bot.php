@@ -70,6 +70,22 @@
                     verifyMobileNumber($data->message->chat->id);
                 }
                 break;
+            case 'نام شرکت':
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'setCompanyName');
+                    getUserName($data->message->chat->id , 'لطفا نام شرکت خود را وارد کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
+                break;
+            case 'تلفن شرکت':
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    setUserStatus($data->message->chat->id , 'setCompanyPhone');
+                    getUserName($data->message->chat->id , 'لطفا تلفن شرکت خود را وارد کنید');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
+                break;
             default :
                 $userStatus = getUserStatus($data->message->chat->id);
                 switch ($userStatus){
@@ -82,6 +98,11 @@
                     case 'setEmail':
                         userSetoneColumn($data->message->chat->id , $data->message->text , 'email' , 'ایمیل شما با موفقیت ثبت شد');
                         break;
+                    case 'setCompanyName':
+                        userSetoneColumn($data->message->chat->id , $data->message->text , 'company_name' , 'نام شرکت شما با موفقیت ثبت شد');
+                        break;
+                    case 'setCompanyPhone':
+                        userSetoneColumn($data->message->chat->id , $data->message->text , 'company_phone' , 'تلفن شرکت با موفقیت ثبت شد');
                 }
         }
 
@@ -164,116 +185,92 @@
         }
     }
 
-function bot($method , $data=[]){
-        print_r($data);
-        $url = "https://api.telegram.org/bot" . API_KEY . "/" . $method;
-        $ch = curl_init();
-        curl_setopt($ch , CURLOPT_URL , $url);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch , CURLOPT_RETURNTRANSFER , true);
-        curl_setopt($ch , CURLOPT_POSTFIELDS , $data);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: multipart/form-data'));
-        $result = curl_exec($ch);
+    function bot($method , $data=[]){
+            print_r($data);
+            $url = "https://api.telegram.org/bot" . API_KEY . "/" . $method;
+            $ch = curl_init();
+            curl_setopt($ch , CURLOPT_URL , $url);
+            curl_setopt($ch, CURLOPT_POST, 1);
+            curl_setopt($ch , CURLOPT_RETURNTRANSFER , true);
+            curl_setopt($ch , CURLOPT_POSTFIELDS , $data);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: multipart/form-data'));
+            $result = curl_exec($ch);
 
-        return $result;
+            return $result;
 
 
     }
-function welcomeMessage(){
-        return 'سلام به ربات تاسیسات خانه خوش آمدید با تشکر از شما بابت همکاری و حضور در این سایت لطفا خدمت مورد نظر خود را انتخاب کنید ';
-}
-function get_main_keyboard($keyboardType){
-        $keyboard = [];
-        switch ($keyboardType) {
-            case 'main':
-                $keyboard = getHomeKeyboard();
-                break;
-            case 'listPrice':
-                $keyboard = getListPriceKeyboard();
-                break;
-            case 'mobile_verify':
-                $keyboard = getMobileVerifyKeyboard();
-                break;
-            case 'mobile_verified':
-                $keyboard = getMobileVerifiedKeyboard();
-                break;
-            case 'information_user';
-                $keyboard = getUserInformationKeyboard();
-                break;
-            case 'getUserName' :
-                $keyboard = getUserNameKeyboard();
-                break;
-            default :
-                $keyboard = getHomeKeyboard();
-        }
-        return $keyboard;
-}
-function getHomeKeyboard(){
-        return [
-            ['لیست قیمت', 'نرخ دلار'],
-            ['دسترسی شماره موبایل' , 'اطلاعات کابری']
-        ];
-}
-function getListPriceKeyboard(){
-        return  [
-            ['میراب'],
-            ['بنکن'],
-            ['پلیران'],
-            ['خانه']
-        ];
-}
-function getMobileVerifyKeyboard(){
-        return [
-            [['text' => 'اجازه دسترسی',
-                'request_contact' => true
-            ]],
-            ['خانه']
-        ];
-}
-function getUserInformationKeyboard(){
-        return [
-                ['نام' , 'نام خانوادگی' , 'ایمیل'],['خانه']
+    function welcomeMessage(){
+            return 'سلام به ربات تاسیسات خانه خوش آمدید با تشکر از شما بابت همکاری و حضور در این سایت لطفا خدمت مورد نظر خود را انتخاب کنید ';
+    }
+    function get_main_keyboard($keyboardType){
+            $keyboard = [];
+            switch ($keyboardType) {
+                case 'main':
+                    $keyboard = getHomeKeyboard();
+                    break;
+                case 'listPrice':
+                    $keyboard = getListPriceKeyboard();
+                    break;
+                case 'mobile_verify':
+                    $keyboard = getMobileVerifyKeyboard();
+                    break;
+                case 'mobile_verified':
+                    $keyboard = getMobileVerifiedKeyboard();
+                    break;
+                case 'information_user';
+                    $keyboard = getUserInformationKeyboard();
+                    break;
+                case 'getUserName' :
+                    $keyboard = getUserNameKeyboard();
+                    break;
+                default :
+                    $keyboard = getHomeKeyboard();
+            }
+            return $keyboard;
+    }
+    function getHomeKeyboard(){
+            return [
+                ['لیست قیمت', 'نرخ دلار'],
+                ['دسترسی شماره موبایل' , 'اطلاعات کابری']
             ];
-}
-function getUserNameKeyboard(){
-        return [
-                ["خانه"]
-        ];
-}
-function setUserNameKeyboard(){
-        return [
-            [
-                [""]
-            ]
-        ];
-}
-function getMobileVerifiedKeyboard(){
-        return [['خانه']];
-}
-function checkUserExist($chat_id){
-        $conn = connection();
-        $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id} ";
-        if($conn->query($sql)){
-            return true;
-        }
-        return false;
-}
-function getUserName($chat_id , $text){
-    bot('sendMessage' , [
-        'chat_id' => $chat_id,
-        'text' => $text,
-        'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('getUserName') , 'resize_keyboard' => true])
-    ]);
-}
-    function setUserName($chat_id , $text){
-        global $tmpUserData ;
-        if($tmpUserData == 'setName'){
-            bot('sendMessage' , [
-                'chat_id' => $chat_id,
-                'text' => 'your name : ' . $text,
-                'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('getUserName') , 'resize_keyboard' => true])
-            ]);
-        }
+    }
+    function getListPriceKeyboard(){
+            return  [
+                ['میراب'],
+                ['بنکن'],
+                ['پلیران'],
+                ['خانه']
+            ];
+    }
+    function getMobileVerifyKeyboard(){
+            return [
+                [['text' => 'اجازه دسترسی',
+                    'request_contact' => true
+                ]],
+                ['خانه']
+            ];
+    }
+    function getUserInformationKeyboard(){
+            return [
+                    ['نام' , 'نام خانوادگی' , 'ایمیل']
+                ,['نام شرکت' , 'تلفن شرکت'] , ['خانه']
+                ];
+    }
+    function getUserNameKeyboard(){
+            return [
+                    ["خانه"]
+            ];
+    }
+    function getMobileVerifiedKeyboard(){
+            return [['خانه']];
+    }
+    function getUserName($chat_id , $text){
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $text,
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('getUserName') , 'resize_keyboard' => true])
+        ]);
     }
     function setUserStatus($chat_id , $status_value){
         $conn = connection();
