@@ -72,6 +72,9 @@
             case 'اطلاعات کابری':
                 informationUser($data->message->chat->id , 'به ربات خودتون خوش آمدید لطفا برای تکمیل اطلاعات کاربری از دکمه های مربوطه استفاده کنید');
                 break;
+            case 'اطلاعات شرکت':
+                informationCompany($data->message->chat->id , 'میتوانید با استفاده از هر یک از موارد زیر در مورد شرکت تامین و تاسیسات نوین کالا اطلاعات جدیدی به دست آورید');
+                break;
             case 'نام':
                 if(checkUserExistByChatId($data->message->chat->id)){
                     setUserStatus($data->message->chat->id , 'setName');
@@ -112,7 +115,7 @@
                     verifyMobileNumber($data->message->chat->id);
                 }
                 break;
-            case 'ارسال پیش فاکتور':
+            case 'صورت خرید':
                 if(checkUserExistByChatId($data->message->chat->id)){
                     setUserStatus($data->message->chat->id , 'sendFactor');
                     getUserName($data->message->chat->id , 'لطفا عکس فاکتور خود را برای ما ارسال کنید');
@@ -233,7 +236,7 @@
 
     }
     function welcomeMessage(){
-            return 'سلام به ربات تاسیسات خانه خوش آمدید با تشکر از شما بابت همکاری و حضور در این سایت لطفا خدمت مورد نظر خود را انتخاب کنید ';
+            return 'سلام به ربات تاسیسات خانه خوش آمدید با تشکر از شما بابت همکاری و حضور در این ربات لطفا خدمت مورد نظر خود را انتخاب کنید ';
     }
     function get_main_keyboard($keyboardType){
             $keyboard = [];
@@ -256,6 +259,9 @@
                 case 'getUserName' :
                     $keyboard = getUserNameKeyboard();
                     break;
+                case 'company_info':
+                    $keyboard = getCompanyInfo();
+                    break;
                 default :
                     $keyboard = getHomeKeyboard();
             }
@@ -263,10 +269,15 @@
     }
     function getHomeKeyboard(){
             return [
-                ['ارسال پیش فاکتور'],
+                ['صورت خرید' , 'اطلاعات شرکت'],
                 ['لیست قیمت', 'نرخ دلار'],
                 ['دسترسی شماره موبایل' , 'اطلاعات کابری' , 'ارزدیجیتال']
             ];
+    }
+    function getCompanyInfo(){
+        return [
+            ['رزومه' , 'سایت']
+        ];
     }
     function getListPriceKeyboard(){
             return  [
@@ -393,4 +404,11 @@
         } else {
             echo "Image not found.";
         }
+    }
+    function informationCompany($chat_id , $text){
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $text,
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
+        ]);
     }
