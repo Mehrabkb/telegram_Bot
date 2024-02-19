@@ -75,6 +75,12 @@
             case 'اطلاعات شرکت':
                 informationCompany($data->message->chat->id , 'میتوانید با استفاده از هر یک از موارد زیر در مورد شرکت تامین و تاسیسات نوین کالا اطلاعات جدیدی به دست آورید');
                 break;
+            case 'سایت':
+                openWebSite($data->message->chat->id);
+                break;
+            case 'رزومه':
+                sendPdfResume($data->message->chat->id);
+                break;
             case 'نام':
                 if(checkUserExistByChatId($data->message->chat->id)){
                     setUserStatus($data->message->chat->id , 'setName');
@@ -276,7 +282,7 @@
     }
     function getCompanyInfo(){
         return [
-            ['رزومه' , 'سایت']
+            ['رزومه' , 'سایت'] , ['خانه']
         ];
     }
     function getListPriceKeyboard(){
@@ -409,6 +415,23 @@
         bot('sendMessage' , [
             'chat_id' => $chat_id,
             'text' => $text,
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
+        ]);
+    }
+    function openWebSite($chat_id){
+        $url = "https://tasisatkhane.com";
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => $url,
+            'parse_mode' => 'HTML',
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
+        ]);
+    }
+    function sendPdfResume($chat_id){
+        $filePath = "resume/resume.pdf";
+        bot('sendDocument' , [
+            'chat_id' => $chat_id,
+            'document' => new CURLFile(realpath($filePath)),
             'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
         ]);
     }
