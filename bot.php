@@ -11,7 +11,7 @@
         global $tmpUserData ;
         $tmpUserData = $data;
     }
-    if(isset($tData->message->photo) && getUserStatus($tData->message->chat->id) == 'sendFactor'){
+    if(isset($tData->message->photo) && getUserStatus($tData->message->chat->id) == 'sendFactor' && $tData->message->from->is_bot == false){
         $photo = end($tData->message->photo);
         $photo_id = $photo->file_id;
 
@@ -21,11 +21,24 @@
         $file_path = json_decode(file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id"), true)['result']['file_path'];
         $photo_url = "https://api.telegram.org/file/bot" . API_KEY . "/$file_path";
         $photo_content = file_get_contents($photo_url);
-        $photo_name = 'photos/' . $tData->message->chat->id + rand(100000 , 100000000). '.jpg'; // Directory 'photos' must exist
-        file_put_contents($photo_name, $photo_content);
-        clearUserStatus($tData->message->chat->id);
+        $photo_name = 'photos/' . $tData->message->chat->id . '_' . rand(1 , 10000) . '.jpg'; // Directory 'photos' must exist
+        $conn = connection();
+        $sql = "INSERT INTO `images`(`chat_id`, `image_url`) VALUES ('{$tData->message->chat->id}','{$photo_name}')";
+        if($conn->query($sql)){
+            file_put_contents($photo_name, $photo_content);
+            sendInfoToAdmin($tData->message->chat->id);
+            bot('sendMessage' , array(
+                'chat_id' => $tData->message->chat->id,
+                'text' => 'پیش فاکتور شما برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
+                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+            ));
+            sendPhotoToAdmin($photo_name);
+            clearUserStatus($tData->message->chat->id);
+
+        }
+
     }
-    if(isset($tData->message->contact)){
+    if(isset($tData->message->contact) && $tData->message->from->is_bot == false){
         if(!checkUserExistByChatId($tData->message->chat->id)){
             $conn = connection();
             $sql = "INSERT INTO `users`( `chat_id` ,`phone_number`) VALUES ('{$tData->message->chat->id}','{$tData->message->contact->phone_number}')";
@@ -38,7 +51,7 @@
                 ]);
             }
         }
-    }else{
+    }else if($tData->message->from->is_bot == false){
         reply($tData);
     }
     function reply($data){
@@ -348,3 +361,31 @@
             'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
         ]);
     }
+    function sendInfoToAdmin($chat_id){
+        $conn = connection();
+        $sql = "SELECT * FROM `users` WHERE `chat_id` = {$chat_id}";
+        $result = $conn->query($sql);
+        $r = $result->fetch_assoc();
+        $text = '';
+        $text .= ' کاربری با مشخصات زیر پیش فاکتور ارسال کرده است ';
+        $text .= ($r['first_name'] != null ? 'نام :' . '<pre>' .  $r['first_name'] . '</pre>': '');
+        $text .= ($r['last_name'] != null ? 'نام خانوادگی :' . '<pre>' . $r['last_name'] . '</pre>' : '');
+        $text .= ($r['phone_number'] != null ? 'شماره موبایل :' . '<pre>'.  $r['phone_number'] . '</pre>' : '');
+        $text .= ($r['email'] != null ? 'ایمیل :' . '<pre>' .  $r['email'] . '</pre>' : '');
+        $text .= ($r['company_name'] != null ? 'اسم شرکت :' . '<pre>' .  $r['company_name'] . '</pre>' : '');
+        $text .= ($r['company_phone'] != null ? 'تلفن شرکت :'  .'<pre>' .  $r['company_phone'] . '</pre>' : '');
+        bot('sendMessage' , [
+            'chat_id' => ADMIN_CHAT_ID,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+        ]);
+    }
+function sendPhotoToAdmin( $imageFile){
+    $imageFilePath = new CURLFile(realpath($imageFile));
+    bot('sendPhoto' , array(
+        'chat_id' => ADMIN_CHAT_ID,
+        'photo' => $imageFilePath
+    ));
+
+//    }
+}
