@@ -1,8 +1,5 @@
 <?php
     include 'vendor/autoload.php';
-    use PHPMailer\PHPMailer\PHPMailer;
-    use PHPMailer\PHPMailer\SMTP;
-    use PHPMailer\PHPMailer\Exception;
     include ("apiKey.php");
     include 'dataBaseConnection.php';
     $inData = file_get_contents("php://input");
