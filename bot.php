@@ -45,7 +45,7 @@
                 'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
             ));
             sendFileToAdmin($savedFileName , 'file');
-            deleteFile($file_name);
+            deleteFile($savedFileName);
             clearUserStatus($tData->message->chat->id);
         }
     }
