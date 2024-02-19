@@ -8,28 +8,46 @@
         global $tmpUserData ;
         $tmpUserData = $data;
     }
-    if(isset($tData->message->photo) && getUserStatus($tData->message->chat->id) == 'sendFactor' && $tData->message->from->is_bot == false){
-        $photo = end($tData->message->photo);
-        $photo_id = $photo->file_id;
+    if((isset($tData->message->photo) || isset($tData->message->document))  && getUserStatus($tData->message->chat->id) == 'sendFactor' && $tData->message->from->is_bot == false){
+        if(isset($tData->message->photo)){
+            $photo = end($tData->message->photo);
+            $photo_id = $photo->file_id;
 
-        // Download the photo
-        $photo_file = file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id");
-        $photo_file = json_decode($photo_file, true);
-        $file_path = json_decode(file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id"), true)['result']['file_path'];
-        $photo_url = "https://api.telegram.org/file/bot" . API_KEY . "/$file_path";
-        $photo_content = file_get_contents($photo_url);
-        $photo_name = 'photos/' . $tData->message->chat->id . '_' . rand(1 , 10000) . '.jpg'; // Directory 'photos' must exist
-        file_put_contents($photo_name, $photo_content);
-        sendInfoToAdmin($tData->message->chat->id);
-        bot('sendMessage' , array(
-            'chat_id' => $tData->message->chat->id,
-            'text' => 'پیش فاکتور شما برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
-            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
-        ));
-        sendPhotoToAdmin($photo_name);
-        deletePhoto($photo_name);
-        clearUserStatus($tData->message->chat->id);
-
+            // Download the photo
+            $photo_file = file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id");
+            $photo_file = json_decode($photo_file, true);
+            $file_path = json_decode(file_get_contents("https://api.telegram.org/bot" . API_KEY . "/getFile?file_id=$photo_id"), true)['result']['file_path'];
+            $photo_url = "https://api.telegram.org/file/bot" . API_KEY . "/$file_path";
+            $photo_content = file_get_contents($photo_url);
+            $photo_name = 'photos/' . $tData->message->chat->id . '_' . rand(1 , 10000) . '.jpg'; // Directory 'photos' must exist
+            file_put_contents($photo_name, $photo_content);
+            sendInfoToAdmin($tData->message->chat->id);
+            bot('sendMessage' , array(
+                'chat_id' => $tData->message->chat->id,
+                'text' => 'صورت خرید شما برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
+                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+            ));
+            sendFileToAdmin($photo_name , 'photo');
+            deleteFile($photo_name);
+            clearUserStatus($tData->message->chat->id);
+        }
+        if(isset($tData->message->document)){
+            $file_id = $tData->message->document->file_id;
+            $file_info = getFile(API_KEY , $file_id);
+            $file = downloadFile(API_KEY , $file_info['file_path']);
+            $save_path = 'files/';
+            $savedFileName = $save_path . $file_info['file_unique_id'] . '.' . pathinfo($file_info['file_path'], PATHINFO_EXTENSION);
+            file_put_contents($savedFileName , $file );
+            sendInfoToAdmin($tData->message->chat->id);
+            bot('sendMessage' , array(
+                'chat_id' => $tData->message->chat->id,
+                'text' => 'صورت خرید  برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
+                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+            ));
+            sendFileToAdmin($savedFileName , 'file');
+            deleteFile($file_name);
+            clearUserStatus($tData->message->chat->id);
+        }
     }
     if(isset($tData->message->contact) && $tData->message->from->is_bot == false){
         if(!checkUserExistByChatId($tData->message->chat->id)){
@@ -64,7 +82,11 @@
                 verifyMobileNumber($data->message->chat->id);
                 break;
             case 'بنکن':
-                sendPhoto($data->message->chat->id , '/benkan/');
+                if(checkUserExistByChatId($data->message->chat->id)){
+                    sendPhoto($data->message->chat->id , '/benkan/');
+                }else{
+                    verifyMobileNumber($data->message->chat->id);
+                }
                 break;
             case 'ارزدیجیتال':
                 getCryptoCurrencies($data->message->chat->id);
@@ -124,7 +146,7 @@
             case 'صورت خرید':
                 if(checkUserExistByChatId($data->message->chat->id)){
                     setUserStatus($data->message->chat->id , 'sendFactor');
-                    getUserName($data->message->chat->id , 'لطفا عکس فاکتور خود را برای ما ارسال کنید');
+                    getUserName($data->message->chat->id , 'لطفا فایل صورت  خود را برای ما ارسال کنید ( میتواند عکس یا فایل های دیگر باشد)');
                 }else{
                     verifyMobileNumber($data->message->chat->id);
                 }
@@ -390,19 +412,28 @@
             'parse_mode' => 'HTML',
         ]);
     }
-    function sendPhotoToAdmin( $imageFile){
-        $imageFilePath = new CURLFile(realpath($imageFile));
-        bot('sendPhoto' , array(
-            'chat_id' => ADMIN_CHAT_ID,
-            'photo' => $imageFilePath
-        ));
+    function sendFileToAdmin( $file , $type){
+        if($type == 'photo'){
+            $imageFilePath = new CURLFile(realpath($file));
+            bot('sendPhoto' , array(
+                'chat_id' => ADMIN_CHAT_ID,
+                'photo' => $imageFilePath
+            ));
+        }else if($type == 'file'){
+            $filePath = new CURLFile(realpath($file));
+            bot('sendDocument' , [
+                'chat_id' => ADMIN_CHAT_ID,
+                'document' => $filePath
+            ]);
+        }
+
 
     //    }
     }
-    function deletePhoto($image_path){
-        if (file_exists($image_path)) {
+    function deleteFile($file_path){
+        if (file_exists($file_path)) {
             // Attempt to delete the file
-            if (unlink($image_path)) {
+            if (unlink($file_path)) {
                 echo "Image deleted successfully.";
             } else {
                 echo "Failed to delete the image.";
@@ -434,4 +465,15 @@
             'document' => new CURLFile(realpath($filePath)),
             'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
         ]);
+    }
+    // Function to get file information from Telegram
+    function getFile($botToken, $fileID) {
+        $url = "https://api.telegram.org/bot$botToken/getFile?file_id=$fileID";
+        return json_decode(file_get_contents($url), true)['result'];
+    }
+
+    // Function to download the file from Telegram's servers
+    function downloadFile($botToken, $filePath) {
+        $url = "https://api.telegram.org/file/bot$botToken/$filePath";
+        return file_get_contents($url);
     }
