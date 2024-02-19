@@ -22,20 +22,16 @@
         $photo_url = "https://api.telegram.org/file/bot" . API_KEY . "/$file_path";
         $photo_content = file_get_contents($photo_url);
         $photo_name = 'photos/' . $tData->message->chat->id . '_' . rand(1 , 10000) . '.jpg'; // Directory 'photos' must exist
-        $conn = connection();
-        $sql = "INSERT INTO `images`(`chat_id`, `image_url`) VALUES ('{$tData->message->chat->id}','{$photo_name}')";
-        if($conn->query($sql)){
-            file_put_contents($photo_name, $photo_content);
-            sendInfoToAdmin($tData->message->chat->id);
-            bot('sendMessage' , array(
-                'chat_id' => $tData->message->chat->id,
-                'text' => 'پیش فاکتور شما برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
-                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
-            ));
-            sendPhotoToAdmin($photo_name);
-            clearUserStatus($tData->message->chat->id);
-
-        }
+        file_put_contents($photo_name, $photo_content);
+        sendInfoToAdmin($tData->message->chat->id);
+        bot('sendMessage' , array(
+            'chat_id' => $tData->message->chat->id,
+            'text' => 'پیش فاکتور شما برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
+            'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+        ));
+        sendPhotoToAdmin($photo_name);
+        deletePhoto($photo_name);
+        clearUserStatus($tData->message->chat->id);
 
     }
     if(isset($tData->message->contact) && $tData->message->from->is_bot == false){
@@ -380,12 +376,24 @@
             'parse_mode' => 'HTML',
         ]);
     }
-function sendPhotoToAdmin( $imageFile){
-    $imageFilePath = new CURLFile(realpath($imageFile));
-    bot('sendPhoto' , array(
-        'chat_id' => ADMIN_CHAT_ID,
-        'photo' => $imageFilePath
-    ));
+    function sendPhotoToAdmin( $imageFile){
+        $imageFilePath = new CURLFile(realpath($imageFile));
+        bot('sendPhoto' , array(
+            'chat_id' => ADMIN_CHAT_ID,
+            'photo' => $imageFilePath
+        ));
 
-//    }
-}
+    //    }
+    }
+    function deletePhoto($image_path){
+        if (file_exists($image_path)) {
+            // Attempt to delete the file
+            if (unlink($image_path)) {
+                echo "Image deleted successfully.";
+            } else {
+                echo "Failed to delete the image.";
+            }
+        } else {
+            echo "Image not found.";
+        }
+    }
