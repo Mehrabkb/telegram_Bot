@@ -113,6 +113,24 @@
             case 'رزومه':
                 sendPdfResume($data->message->chat->id);
                 break;
+            case 'کاتالوگ':
+                catalogMenu($data->message->chat->id);
+                break;
+            case 'شرکت میراب':
+                showCatalog($data->message->chat->id , 'mirab');
+                break;
+            case 'شرکت پلیران':
+                showCatalog($data->message->chat->id , 'poliran');
+                break;
+            case 'شرکت شیلان':
+                showCatalog($data->message->chat->id , 'shilan');
+                break;
+            case 'شرکت ارتعاشات صنعتی ایران':
+                showCatalog($data->message->chat->id , 'sanati');
+                break;
+            case 'سایر':
+                showCatalog($data->message->chat->id , 'saier');
+                break;
             case 'نام':
                 if(checkUserExistByChatId($data->message->chat->id)){
                     setUserStatus($data->message->chat->id , 'setName');
@@ -257,9 +275,15 @@
             ));
         }
     }
+    function catalogMenu($chat_id){
+        bot('sendMessage' , [
+            'chat_id' => $chat_id,
+            'text' => 'لطفا یکی از موارد زیر را انتخاب کنید ',
+            'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies') , 'resize_keyboard' => true])
+        ]);
 
+    }
     function bot($method , $data=[]){
-            print_r($data);
             $url = "https://api.telegram.org/bot" . API_KEY . "/" . $method;
             $ch = curl_init();
             curl_setopt($ch , CURLOPT_URL , $url);
@@ -300,6 +324,9 @@
                 case 'company_info':
                     $keyboard = getCompanyInfo();
                     break;
+                case 'get_catalog_companies':
+                    $keyboard = getCatalogKeyboard();
+                    break;
                 default :
                     $keyboard = getHomeKeyboard();
             }
@@ -312,8 +339,15 @@
                 ['دسترسی شماره موبایل' , 'اطلاعات کابری' , 'ارزدیجیتال']
             ];
     }
-    function getCompanyInfo(){
+    function getCatalogKeyboard(){
         return [
+            ['شرکت میراب' , 'شرکت پلیران'],
+            ['شرکت شیلان' , 'شرکت ارتعاشات صنعتی ایران'],
+            ['سایر']
+        ];
+    }
+    function getCompanyInfo(){
+        return [['کاتالوگ'],
             ['رزومه' , 'سایت'] , ['خانه']
         ];
     }
@@ -467,6 +501,55 @@
             'parse_mode' => 'HTML',
             'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('company_info'), 'resize_keyboard' => true])
         ]);
+    }
+    function showCatalog($chat_id , $company){
+        switch ($company){
+            case 'mirab' :
+                $url = "https://catalog.tasisatkhane.com/?tab=0&sub_id=210";
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $url,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies'), 'resize_keyboard' => true])
+                ]);
+                break;
+            case 'poliran':
+                $url = "https://catalog.tasisatkhane.com/?tab=0&sub_id=206";
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $url,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies'), 'resize_keyboard' => true])
+                ]);
+                break;
+            case 'shilan':
+                $url = "https://catalog.tasisatkhane.com/?tab=0&sub_id=207";
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $url,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies'), 'resize_keyboard' => true])
+                ]);
+                break;
+            case 'sanati':
+                $url = "https://catalog.tasisatkhane.com/?tab=0&sub_id=205";
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $url,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies'), 'resize_keyboard' => true])
+                ]);
+                break;
+            default :
+                $url = "https://catalog.tasisatkhane.com/?tab=0&sub_id=204";
+                bot('sendMessage' , [
+                    'chat_id' => $chat_id,
+                    'text' => $url,
+                    'parse_mode' => 'HTML',
+                    'reply_markup' => json_encode([ 'keyboard'=> get_main_keyboard('get_catalog_companies'), 'resize_keyboard' => true])
+                ]);
+
+        }
     }
     function sendPdfResume($chat_id){
         $filePath = "resume/resume.pdf";
