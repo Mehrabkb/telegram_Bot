@@ -36,17 +36,27 @@
             $file_info = getFile(API_KEY , $file_id);
             $file = downloadFile(API_KEY , $file_info['file_path']);
             $save_path = 'files/';
-            $savedFileName = $save_path . $file_info['file_unique_id'] . '.' . pathinfo($file_info['file_path'], PATHINFO_EXTENSION);
-            file_put_contents($savedFileName , $file );
-            sendInfoToAdmin($tData->message->chat->id);
-            bot('sendMessage' , array(
-                'chat_id' => $tData->message->chat->id,
-                'text' => 'صورت خرید  برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
-                'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
-            ));
-            sendFileToAdmin($savedFileName , 'file');
-            deleteFile($savedFileName);
-            clearUserStatus($tData->message->chat->id);
+            $file_clear_name = explode('.' , $file_info['file_path']);
+            if(checkMimeFile($file_clear_name[count($file_clear_name) - 1])){
+                $savedFileName = $save_path . $file_info['file_unique_id'] . '.' . pathinfo($file_info['file_path'], PATHINFO_EXTENSION);
+                file_put_contents($savedFileName , $file );
+                sendInfoToAdmin($tData->message->chat->id);
+                bot('sendMessage' , array(
+                    'chat_id' => $tData->message->chat->id,
+                    'text' => 'صورت خرید  برای کارشناسان ارسال شد در اولین فرصت با شما تماس خواهند گرفت',
+                    'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+                ));
+                sendFileToAdmin($savedFileName , 'file');
+                deleteFile($savedFileName);
+                clearUserStatus($tData->message->chat->id);
+            }else{
+                bot('sendMessage' , array(
+                    'chat_id' => $tData->message->chat->id,
+                    'text' => 'کاربر گرامی فایل ارسال شده معتبر نمیباشد لطفا از فایل های معتبر استفاده بفرمایید',
+                    'reply_markup' => json_encode(['keyboard' => get_main_keyboard('main') , 'resize_keyboard' => true])
+                ));
+            }
+
         }
     }
     if(isset($tData->message->contact) && $tData->message->from->is_bot == false){
@@ -476,4 +486,23 @@
     function downloadFile($botToken, $filePath) {
         $url = "https://api.telegram.org/file/bot$botToken/$filePath";
         return file_get_contents($url);
+    }
+    function checkMimeFile($mime){
+        $allowed_mime_types = array(
+            'jpeg',
+            'png',
+            'jpg',
+            'pdf',
+            'xlsx',
+            'doc',
+            'docx',
+            'csv',
+            'xlms',
+            'txt',
+            'ppt',
+            'zip',
+            'rar'
+            // Add more allowed MIME types as needed
+        );
+        return in_array($mime , $allowed_mime_types);
     }
